@@ -261,24 +261,30 @@ nameInput.focus();
 
 function doJoin(roomId, pw) {
   const name = nameInput.value.trim();
-  const rid  = roomId || getSelectedRoom();
   const password = pw || pwInput.value.trim();
+  // Room-ID: explizit übergeben → selected DOM → 'main' (hardcoded Fallback)
+  let rid = roomId;
+  if (!rid) {
+    const sel = document.querySelector('.room-item.selected');
+    rid = sel ? sel.dataset.id : 'main';
+  }
+  rid = (rid || 'main').trim();
+
   if (!name)     { loginError.textContent='Bitte gib deinen Namen ein.'; return; }
-  if (!rid)      { loginError.textContent='Bitte wähle einen Raum (Seite neu laden?).'; return; }
   if (!password) { loginError.textContent='Bitte gib das Kennwort ein.'; return; }
-  console.log('[JOIN] Name:', name, 'Room:', rid, 'PW length:', password.length);
+
+  console.log('[JOIN EMIT] name='+name+' roomId='+rid+' pw_len='+password.length);
   loginError.textContent='';
   joinBtn.disabled=true; joinBtn.textContent='Verbinde…';
   myName=name; currentRoomPw=password;
-  socket.emit('join', { name, password, roomId: rid });
+  socket.emit('join', { name: name, password: password, roomId: rid });
 }
 
 function getSelectedRoom() {
-  // Erstes selected Element, sonst ersten Raum in der Liste, sonst 'main'
   const sel = document.querySelector('.room-item.selected');
-  if (sel) return sel.dataset.id;
+  if (sel && sel.dataset.id) return sel.dataset.id.trim();
   const first = document.querySelector('.room-item');
-  if (first) return first.dataset.id;
+  if (first && first.dataset.id) return first.dataset.id.trim();
   return 'main';
 }
 

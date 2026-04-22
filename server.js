@@ -10,10 +10,7 @@ const io = new Server(server, { cors: { origin: '*' } });
 const PORT = process.env.PORT || 3000;
 const MASTER_PASSWORD = process.env.ROOM_PASSWORD || 'windrose2026';
 
-// Räume: { roomId → { name, password, users: { socketId → { name } } } }
 const rooms = {};
-
-// Standard-Raum immer vorhanden
 rooms['main'] = {
   name: '🎮 Hauptraum',
   password: MASTER_PASSWORD,
@@ -21,7 +18,25 @@ rooms['main'] = {
   users: {}
 };
 
-app.use(express.static(path.join(__dirname, 'public')));
+// Cache-Control: HTML nie cachen, Assets normal
+app.get('/', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.get('/index.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.use(express.static(path.join(__dirname, 'public'), {
+  etag: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.js') && !filePath.includes('socket.io')) {
+      res.setHeader('Cache-Control', 'no-store');
+    }
+  }
+}));
 app.use(express.json());
 
 app.get('/health', (req, res) => {
@@ -32,44 +47,31 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', rooms: info });
 });
 
-// Raumliste (ohne Passwörter)
 app.get('/api/rooms', (req, res) => {
   const list = Object.entries(rooms).map(([id, r]) => ({
     id,
     name: r.name,
     userCount: Object.keys(r.users).length,
     isDefault: !!r.isDefault,
-    hasPassword: r.password !== MASTER_PASSWORD || !r.isDefault
+    hasPassword: !r.isDefault
   }));
   res.json(list);
 });
 
-// Raum erstellen
 app.post('/api/rooms', (req, res) => {
   const { name, password, masterPassword } = req.body;
-  if (masterPassword !== MASTER_PASSWORD) {
-    return res.status(403).json({ error: 'Falsches Hauptkennwort' });
-  }
-  if (!name || name.trim().length < 2) {
-    return res.status(400).json({ error: 'Name zu kurz' });
-  }
+  if (masterPassword !== MASTER_PASSWORD) return res.status(403).json({ error: 'Falsches Hauptkennwort' });
+  if (!name || name.trim().length < 2) return res.status(400).json({ error: 'Name zu kurz' });
   const id = 'room_' + Date.now();
-  rooms[id] = {
-    name: name.trim(),
-    password: password || MASTER_PASSWORD,
-    isDefault: false,
-    users: {}
-  };
+  rooms[id] = { name: name.trim(), password: password || MASTER_PASSWORD, isDefault: false, users: {} };
   console.log(`[ROOM CREATED] ${name} (${id})`);
-  // Allen Clients neue Raumliste schicken
   io.emit('rooms-updated', getRoomList());
   res.json({ id, name: rooms[id].name });
 });
 
 function getRoomList() {
   return Object.entries(rooms).map(([id, r]) => ({
-    id,
-    name: r.name,
+    id, name: r.name,
     userCount: Object.keys(r.users).length,
     isDefault: !!r.isDefault
   }));
@@ -78,80 +80,60 @@ function getRoomList() {
 io.on('connection', (socket) => {
   let currentRoom = null;
 
-  // Raumliste senden beim Connect
   socket.emit('rooms-updated', getRoomList());
 
-  // Raum beitreten
   socket.on('join', ({ name, password, roomId }) => {
-    const rid = roomId || 'main';
+    // Normalisieren - trim alles
+    const rid = (roomId || 'main').trim();
+    const pw  = (password || '').trim();
+    const nm  = (name || '').trim();
+
+    console.log(`[JOIN ATTEMPT] name="${nm}" roomId="${rid}" pw_len=${pw.length} pw="${pw}"`);
+    console.log(`[ROOMS AVAILABLE] ${Object.keys(rooms).join(', ')}`);
+
     const room = rooms[rid];
-
     if (!room) {
-      socket.emit('error', 'Raum nicht gefunden.'); return;
+      console.log(`[ERROR] Room "${rid}" not found!`);
+      socket.emit('error', `Raum "${rid}" nicht gefunden.`);
+      return;
     }
-    if (password !== room.password) {
-      socket.emit('error', 'Falsches Kennwort!'); return;
+    if (pw !== room.password) {
+      console.log(`[ERROR] Wrong password. Expected "${room.password}" got "${pw}"`);
+      socket.emit('error', 'Falsches Kennwort!');
+      return;
     }
-    if (!name || name.trim().length < 2) {
-      socket.emit('error', 'Bitte gib deinen Namen ein.'); return;
+    if (nm.length < 2) {
+      socket.emit('error', 'Bitte gib deinen Namen ein.');
+      return;
     }
 
-    // Alten Raum verlassen falls vorhanden
-    if (currentRoom && rooms[currentRoom]) {
-      leaveRoom(socket, currentRoom);
-    }
+    if (currentRoom && rooms[currentRoom]) leaveRoom(socket, currentRoom);
 
     currentRoom = rid;
-    room.users[socket.id] = { name: name.trim() };
+    room.users[socket.id] = { name: nm };
     socket.join(rid);
 
-    console.log(`[JOIN] ${name} → ${room.name}`);
+    console.log(`[JOIN OK] ${nm} → ${room.name}`);
 
-    // Allen im Raum Bescheid
-    socket.to(rid).emit('user-joined', { id: socket.id, name: name.trim() });
+    socket.to(rid).emit('user-joined', { id: socket.id, name: nm });
 
-    // Neuem User alle vorhandenen schicken
     const others = Object.entries(room.users)
       .filter(([id]) => id !== socket.id)
       .map(([id, u]) => ({ id, name: u.name }));
 
-    socket.emit('joined', {
-      myId: socket.id,
-      users: others,
-      roomId: rid,
-      roomName: room.name
-    });
-
-    // Raumliste updaten
+    socket.emit('joined', { myId: socket.id, users: others, roomId: rid, roomName: room.name });
     io.emit('rooms-updated', getRoomList());
   });
 
-  // Raum wechseln
-  socket.on('switch-room', ({ roomId, password }) => {
-    const room = rooms[roomId];
-    if (!room) { socket.emit('error', 'Raum nicht gefunden.'); return; }
-    if (password !== room.password) { socket.emit('error', 'Falsches Kennwort!'); return; }
-
-    const name = currentRoom && rooms[currentRoom]?.users[socket.id]?.name;
-    if (!name) return;
-
-    socket.emit('room-switch-start');
-    // join-Event mit neuem Raum
-    socket.emit('do-join', { roomId, name, password });
-  });
-
-  // WebRTC Signaling
   socket.on('offer',         ({ to, offer })     => socket.to(to).emit('offer',         { from: socket.id, offer }));
   socket.on('answer',        ({ to, answer })    => socket.to(to).emit('answer',        { from: socket.id, answer }));
   socket.on('ice-candidate', ({ to, candidate }) => socket.to(to).emit('ice-candidate', { from: socket.id, candidate }));
 
-  // Mute
   socket.on('mute-status', ({ muted }) => {
     const name = currentRoom && rooms[currentRoom]?.users[socket.id]?.name;
     if (name) socket.to(currentRoom).emit('user-mute-changed', { id: socket.id, name, muted });
   });
 
-  // Disconnect
   socket.on('disconnect', () => {
     if (currentRoom) leaveRoom(socket, currentRoom);
   });
@@ -165,10 +147,9 @@ io.on('connection', (socket) => {
       delete room.users[socket.id];
       socket.leave(rid);
       console.log(`[LEAVE] ${name} ← ${room.name}`);
-      // Leere nicht-default Räume löschen
       if (!room.isDefault && Object.keys(room.users).length === 0) {
         delete rooms[rid];
-        console.log(`[ROOM DELETED] ${rid} (leer)`);
+        console.log(`[ROOM DELETED] ${rid}`);
       }
       io.emit('rooms-updated', getRoomList());
     }
