@@ -179,3 +179,58 @@ MIT — frei nutzbar, anpassbar, weitergeben.
 ---
 
 *Erstellt: April 2026 | Deployed auf osinova-01 via Docker + Traefik*
+
+---
+
+## 🐛 Bekannte Bugs & Fixes
+
+### iOS Safari: Login-Button ohne Reaktion (behoben v1.3)
+
+**Symptom:** Beitreten-Button auf iOS Safari tut nichts, kein Fehler sichtbar.
+
+**Root Cause:** `onclick="doJoin()"` im HTML-Button wurde vom Parser aufgerufen bevor `doJoin()` im Script-Block definiert war → stiller ReferenceError auf iOS Safari (Desktop Chrome/Firefox sind toleranter).
+
+**Fix:** Event-Listener in `DOMContentLoaded` verschoben, `onclick`-Attribut aus HTML entfernt.
+
+```javascript
+// ❌ Falsch – doJoin noch nicht definiert wenn HTML geparst wird
+<button onclick="doJoin()">Beitreten</button>
+
+// ✅ Richtig – erst nach vollständigem DOM-Load
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('join-btn').addEventListener('click', doJoin);
+});
+```
+
+### iOS Safari: Ping Timeout / Reconnect-Loop
+
+**Symptom:** Socket trennt sich alle ~2 Minuten, reconnectet automatisch.
+
+**Fix:** Socket.io `pingTimeout` auf 60s erhöht (Standard: 20s reicht für iOS im Hintergrund nicht).
+
+```javascript
+const socket = io({
+  pingTimeout: 60000,
+  pingInterval: 25000
+});
+```
+
+### iOS Safari: Veralteter Cache nach Updates
+
+**Symptom:** Alte Version wird trotz Server-Update ausgeliefert.
+
+**Fix:** 
+- Service Worker deaktiviert (macht auf iOS mehr Probleme als er löst)
+- Server liefert `Cache-Control: no-store` für HTML und JS
+- Bei hartnäckigem Cache: Einstellungen → Safari → Verlauf und Websitedaten löschen
+
+---
+
+## 📝 Changelog
+
+| Version | Änderung |
+|---|---|
+| v1.0 | Initial: WebRTC Voice Chat, Passwortschutz, Mute |
+| v1.1 | PWA Support, Windrose-Hintergrund, User-Cards, Audio-Level |
+| v1.2 | Multi-Room: Hauptraum + private Räume mit eigenem Kennwort |
+| v1.3 | Fix: iOS Safari Login-Bug (DOMContentLoaded), Ping-Timeout, Cache-Headers |
