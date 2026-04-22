@@ -264,8 +264,9 @@ function doJoin(roomId, pw) {
   const rid  = roomId || getSelectedRoom();
   const password = pw || pwInput.value.trim();
   if (!name)     { loginError.textContent='Bitte gib deinen Namen ein.'; return; }
-  if (!rid)      { loginError.textContent='Bitte wähle einen Raum.'; return; }
+  if (!rid)      { loginError.textContent='Bitte wähle einen Raum (Seite neu laden?).'; return; }
   if (!password) { loginError.textContent='Bitte gib das Kennwort ein.'; return; }
+  console.log('[JOIN] Name:', name, 'Room:', rid, 'PW length:', password.length);
   loginError.textContent='';
   joinBtn.disabled=true; joinBtn.textContent='Verbinde…';
   myName=name; currentRoomPw=password;
@@ -273,7 +274,12 @@ function doJoin(roomId, pw) {
 }
 
 function getSelectedRoom() {
-  return document.querySelector('.room-item.selected')?.dataset.id || 'main';
+  // Erstes selected Element, sonst ersten Raum in der Liste, sonst 'main'
+  const sel = document.querySelector('.room-item.selected');
+  if (sel) return sel.dataset.id;
+  const first = document.querySelector('.room-item');
+  if (first) return first.dataset.id;
+  return 'main';
 }
 
 // ── Räume im Login ────────────────────────────
@@ -285,11 +291,13 @@ socket.on('rooms-updated', rooms => {
 
 function renderLoginRooms(rooms) {
   const list = $('room-list');
-  const selected = list.querySelector('.selected')?.dataset.id;
+  const selected = list.querySelector('.selected')?.dataset.id || 'main';
   list.innerHTML = '';
-  rooms.forEach(r => {
+  rooms.forEach((r, idx) => {
     const div = document.createElement('div');
-    div.className = 'room-item' + (r.isDefault ? ' default-room' : '') + (r.id === (selected||'main') ? ' selected' : '');
+    // Wähle: explizit selected, oder main, oder ersten Raum
+    const isSelected = r.id === selected || (!document.querySelector('.room-item.selected') && (r.id === 'main' || idx === 0));
+    div.className = 'room-item' + (r.isDefault ? ' default-room' : '') + (isSelected ? ' selected' : '');
     div.dataset.id = r.id;
     div.innerHTML = `
       <div class="room-icon">${r.isDefault ? '🎮' : '🔒'}</div>
