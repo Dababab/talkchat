@@ -12,7 +12,27 @@
   <title>TalkChat – Windrose</title>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0f1117;color:#e0e0e0;min-height:100vh;display:flex;align-items:center;justify-content:center;flex-direction:column;overflow:hidden;position:relative}
+
+    /* ── WINDROSE HINTERGRUND ── */
+    #windrose-bg{
+      position:fixed;top:50%;left:50%;
+      width:min(100vw,100vh);
+      height:min(100vw,100vh);
+      transform:translate(-50%,-50%);
+      opacity:0.07;
+      animation:windrose-spin 120s linear infinite;
+      pointer-events:none;
+      z-index:0;
+      will-change:transform;
+    }
+    @keyframes windrose-spin{
+      from{transform:translate(-50%,-50%) rotate(0deg)}
+      to{transform:translate(-50%,-50%) rotate(360deg)}
+    }
+
+    /* Alle Content-Elemente über den Hintergrund */
+    #install-banner,#login-screen,#voice-screen{position:relative;z-index:1}
 
     /* ── PWA INSTALL BANNER ── */
     #install-banner{display:none;position:fixed;bottom:0;left:0;right:0;background:#1e2130;border-top:1px solid #2e3250;padding:0.8rem 1rem;flex-direction:row;align-items:center;gap:0.8rem;z-index:100}
@@ -81,6 +101,9 @@
   </style>
 </head>
 <body>
+
+<!-- Windrose Hintergrund -->
+<img id="windrose-bg" src="/windrose.svg" alt="" aria-hidden="true"/>
 
 <!-- PWA Install Banner -->
 <div id="install-banner">

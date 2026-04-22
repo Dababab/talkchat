@@ -1,0 +1,145 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 500" width="500" height="500">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1a1f3a" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#0f1117" stop-opacity="1"/>
+    </radialGradient>
+    <!-- Glow für die Spitze -->
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="3" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softglow">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Hintergrund -->
+  <rect width="500" height="500" fill="url(#bg)"/>
+
+  <!-- Äußere Ringe -->
+  <circle cx="250" cy="250" r="230" fill="none" stroke="#5865f2" stroke-width="0.5" opacity="0.3"/>
+  <circle cx="250" cy="250" r="200" fill="none" stroke="#5865f2" stroke-width="0.3" opacity="0.2"/>
+  <circle cx="250" cy="250" r="160" fill="none" stroke="#5865f2" stroke-width="0.5" opacity="0.25"/>
+  <circle cx="250" cy="250" r="120" fill="none" stroke="#5865f2" stroke-width="0.3" opacity="0.2"/>
+  <circle cx="250" cy="250" r="80"  fill="none" stroke="#5865f2" stroke-width="0.5" opacity="0.3"/>
+  <circle cx="250" cy="250" r="40"  fill="none" stroke="#5865f2" stroke-width="0.3" opacity="0.2"/>
+
+  <!-- Achsenlinien (alle 15°) -->
+  <g stroke="#5865f2" stroke-width="0.4" opacity="0.2">
+    <line x1="250" y1="20" x2="250" y2="480"/>
+    <line x1="20"  y1="250" x2="480" y2="250"/>
+    <!-- 45° -->
+    <line x1="87"  y1="87"  x2="413" y2="413"/>
+    <line x1="413" y1="87"  x2="87"  y2="413"/>
+    <!-- 22.5° -->
+    <line x1="165" y1="20"  x2="335" y2="480"/>
+    <line x1="335" y1="20"  x2="165" y2="480"/>
+    <line x1="20"  y1="165" x2="480" y2="335"/>
+    <line x1="20"  y1="335" x2="480" y2="165"/>
+    <!-- 11.25° -->
+    <line x1="207" y1="20"  x2="293" y2="480"/>
+    <line x1="293" y1="20"  x2="207" y2="480"/>
+    <line x1="20"  y1="207" x2="480" y2="293"/>
+    <line x1="20"  y1="293" x2="480" y2="207"/>
+    <line x1="126" y1="20"  x2="374" y2="480"/>
+    <line x1="374" y1="20"  x2="126" y2="480"/>
+    <line x1="20"  y1="126" x2="480" y2="374"/>
+    <line x1="20"  y1="374" x2="480" y2="126"/>
+  </g>
+
+  <!-- Hauptpfeile N/S/E/W (groß, hell) -->
+  <!-- NORD -->
+  <polygon points="250,30 263,200 250,175 237,200" fill="#ffffff" opacity="0.9" filter="url(#glow)"/>
+  <polygon points="250,175 263,200 237,200" fill="#5865f2" opacity="0.9"/>
+  <!-- SÜD -->
+  <polygon points="250,470 263,300 250,325 237,300" fill="#cccccc" opacity="0.7" filter="url(#glow)"/>
+  <polygon points="250,325 263,300 237,300" fill="#4752c4" opacity="0.8"/>
+  <!-- OST -->
+  <polygon points="470,250 300,237 325,250 300,263" fill="#cccccc" opacity="0.7" filter="url(#glow)"/>
+  <polygon points="325,250 300,237 300,263" fill="#4752c4" opacity="0.8"/>
+  <!-- WEST -->
+  <polygon points="30,250 200,237 175,250 200,263" fill="#cccccc" opacity="0.7" filter="url(#glow)"/>
+  <polygon points="175,250 200,237 200,263" fill="#4752c4" opacity="0.8"/>
+
+  <!-- Diagonalpfeile NE/NW/SE/SW (mittel) -->
+  <!-- NE -->
+  <polygon points="424,76 272,228 286,214 300,242" fill="#aaaacc" opacity="0.55" filter="url(#glow)"/>
+  <polygon points="286,214 272,228 300,242" fill="#5865f2" opacity="0.6"/>
+  <!-- NW -->
+  <polygon points="76,76 228,228 214,214 242,200" fill="#aaaacc" opacity="0.55" filter="url(#glow)"/>
+  <polygon points="214,214 228,228 242,200" fill="#5865f2" opacity="0.6"/>
+  <!-- SE -->
+  <polygon points="424,424 272,272 286,286 300,258" fill="#aaaacc" opacity="0.55" filter="url(#glow)"/>
+  <polygon points="286,286 272,272 300,258" fill="#5865f2" opacity="0.6"/>
+  <!-- SW -->
+  <polygon points="76,424 228,272 214,286 242,300" fill="#aaaacc" opacity="0.55" filter="url(#glow)"/>
+  <polygon points="214,286 228,272 242,300" fill="#5865f2" opacity="0.6"/>
+
+  <!-- Zwischenpfeile (NNE, ENE, ESE, SSE, SSW, WSW, WNW, NNW) kleiner -->
+  <!-- NNE -->
+  <polygon points="341,43 258,218 253,206 268,222" fill="#8888aa" opacity="0.4"/>
+  <!-- ENE -->
+  <polygon points="457,159 282,242 270,237 286,252" fill="#8888aa" opacity="0.4"/>
+  <!-- ESE -->
+  <polygon points="457,341 282,258 270,263 286,248" fill="#8888aa" opacity="0.4"/>
+  <!-- SSE -->
+  <polygon points="341,457 258,282 253,294 268,278" fill="#8888aa" opacity="0.4"/>
+  <!-- SSW -->
+  <polygon points="159,457 242,282 247,294 232,278" fill="#8888aa" opacity="0.4"/>
+  <!-- WSW -->
+  <polygon points="43,341 218,258 230,263 214,248" fill="#8888aa" opacity="0.4"/>
+  <!-- WNW -->
+  <polygon points="43,159 218,242 230,237 214,252" fill="#8888aa" opacity="0.4"/>
+  <!-- NNW -->
+  <polygon points="159,43 242,218 247,206 232,222" fill="#8888aa" opacity="0.4"/>
+
+  <!-- Innerer Dekoring -->
+  <circle cx="250" cy="250" r="22" fill="#0f1117" stroke="#5865f2" stroke-width="1.5" opacity="0.8"/>
+  <circle cx="250" cy="250" r="12" fill="#5865f2" opacity="0.6"/>
+  <circle cx="250" cy="250" r="5"  fill="#ffffff" opacity="0.9"/>
+
+  <!-- Himmelsrichtungs-Labels -->
+  <text x="250" y="18" text-anchor="middle" fill="#ffffff" font-size="16" font-weight="700" font-family="sans-serif" opacity="0.9" filter="url(#glow)">N</text>
+  <text x="250" y="494" text-anchor="middle" fill="#aaaacc" font-size="14" font-weight="600" font-family="sans-serif" opacity="0.7">S</text>
+  <text x="490" y="255" text-anchor="middle" fill="#aaaacc" font-size="14" font-weight="600" font-family="sans-serif" opacity="0.7">E</text>
+  <text x="10"  y="255" text-anchor="middle" fill="#aaaacc" font-size="14" font-weight="600" font-family="sans-serif" opacity="0.7">W</text>
+
+  <!-- Kleine Grad-Markierungen am äußeren Ring -->
+  <g stroke="#5865f2" stroke-width="1" opacity="0.3">
+    <!-- alle 10° = 36 Markierungen -->
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(10,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(20,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(30,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(40,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(50,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(60,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(70,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(80,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(100,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(110,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(120,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(130,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(140,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(150,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(160,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(170,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(190,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(200,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(210,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(220,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(230,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(240,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(250,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(260,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(280,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(290,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(300,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(310,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(320,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(330,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="35" transform="rotate(340,250,250)"/>
+    <line x1="250" y1="20" x2="250" y2="30" transform="rotate(350,250,250)"/>
+  </g>
+</svg>
