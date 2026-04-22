@@ -168,6 +168,7 @@
   <input type="password" id="pw-input" placeholder="Kennwort für gewählten Raum"/>
   <button class="btn-primary" id="join-btn">Beitreten</button>
   <div class="error-msg" id="login-error"></div>
+  <div id="debug-log" style="margin-top:0.5rem;font-size:0.7rem;color:#555;text-align:left;max-height:80px;overflow-y:auto;font-family:monospace;"></div>
 </div>
 
 <!-- ── VOICE ROOM ── -->
@@ -226,6 +227,39 @@
 
 <script src="/socket.io/socket.io.js"></script>
 <script>
+// ── Globaler Error-Catcher ───────────────────
+window.onerror = function(msg, src, line, col, err) {
+  const el = document.getElementById('debug-log');
+  if (el) {
+    const d = document.createElement('div');
+    d.style.color = '#f04747';
+    d.textContent = '🔴 JS ERROR: ' + msg + ' (line ' + line + ')';
+    el.appendChild(d);
+    el.scrollTop = el.scrollHeight;
+  }
+  return false;
+};
+window.onunhandledrejection = function(e) {
+  const el = document.getElementById('debug-log');
+  if (el) {
+    const d = document.createElement('div');
+    d.style.color = '#f04747';
+    d.textContent = '🔴 PROMISE: ' + (e.reason?.message || e.reason);
+    el.appendChild(d);
+  }
+};
+
+// ── Debug ────────────────────────────────────
+function dbg(msg) {
+  const el = document.getElementById('debug-log');
+  if (!el) return;
+  const line = document.createElement('div');
+  line.textContent = new Date().toLocaleTimeString() + ' ' + msg;
+  el.appendChild(line);
+  el.scrollTop = el.scrollHeight;
+  console.log('[DBG]', msg);
+}
+
 // ── PWA ───────────────────────────────────────
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
 let deferredPrompt;
@@ -235,7 +269,15 @@ document.getElementById('install-btn').addEventListener('click', () => { install
 document.getElementById('dismiss-btn').addEventListener('click', () => { installBanner.style.display='none'; });
 
 // ── State ─────────────────────────────────────
-const socket = io();
+const socket = io({
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  reconnectionDelay: 1000,
+  reconnectionAttempts: 10
+});
+socket.on('connect', () => dbg('✅ Socket verbunden: ' + socket.id));
+socket.on('connect_error', (e) => dbg('❌ Connect Error: ' + e.message));
+socket.on('disconnect', (reason) => dbg('⚠️ Disconnect: ' + reason));
 let myId=null, myName='', isMuted=false, currentRoomId=null, currentRoomPw='';
 let localStream=null;
 const peers={}, userNames={};
@@ -255,8 +297,15 @@ const micHint=$('mic-hint');
 const roomModal=$('room-modal');
 
 // ── Login ─────────────────────────────────────
-joinBtn.addEventListener('click', doJoin);
-[nameInput,pwInput].forEach(el=>el.addEventListener('keydown',e=>e.key==='Enter'&&doJoin()));
+// iOS: alle Events nach DOMContentLoaded
+document.addEventListener('DOMContentLoaded', () => {
+  dbg('DOM ready, Button registriert');
+  const btn = document.getElementById('join-btn');
+  btn.addEventListener('click', () => { dbg('btn click'); doJoin(); });
+  btn.addEventListener('touchend', (e) => { e.preventDefault(); dbg('btn touch'); doJoin(); });
+  document.getElementById('name-input').addEventListener('keydown', e => { if(e.key==='Enter'){ dbg('enter'); doJoin(); } });
+  document.getElementById('pw-input').addEventListener('keydown',  e => { if(e.key==='Enter'){ dbg('enter'); doJoin(); } });
+});
 nameInput.focus();
 
 function doJoin(roomId, pw) {
@@ -273,6 +322,7 @@ function doJoin(roomId, pw) {
   if (!name)     { loginError.textContent='Bitte gib deinen Namen ein.'; return; }
   if (!password) { loginError.textContent='Bitte gib das Kennwort ein.'; return; }
 
+  dbg('JOIN emit → room:'+rid+' name:'+name+' pw_len:'+password.length);
   console.log('[JOIN EMIT] name='+name+' roomId='+rid+' pw_len='+password.length);
   loginError.textContent='';
   joinBtn.disabled=true; joinBtn.textContent='Verbinde…';
@@ -417,6 +467,7 @@ $('modal-join').addEventListener('click', async () => {
 
 // ── Socket Events ─────────────────────────────
 socket.on('error', msg => {
+  dbg('❌ Server error: ' + msg);
   loginError.textContent = msg;
   joinBtn.disabled=false; joinBtn.textContent='Beitreten';
   roomModal.classList.remove('open');
@@ -424,6 +475,7 @@ socket.on('error', msg => {
 });
 
 socket.on('joined', async ({ myId:id, users, roomId, roomName }) => {
+  dbg('✅ joined room: ' + roomName);
   myId = id;
   currentRoomId = roomId;
   userNames[myId] = myName;
