@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>TalkChat – Windrose</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f1117;
+      color: #e0e0e0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ── LOGIN ── */
+    #login-screen {
+      width: 100%;
+      max-width: 380px;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .logo { font-size: 3rem; margin-bottom: 0.5rem; }
+    h1 { font-size: 1.5rem; color: #fff; margin-bottom: 0.3rem; }
+    .subtitle { font-size: 0.85rem; color: #666; margin-bottom: 2rem; }
+
+    input {
+      width: 100%;
+      padding: 0.9rem 1rem;
+      margin-bottom: 0.9rem;
+      background: #1e2130;
+      border: 1px solid #2e3250;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 1rem;
+      outline: none;
+      transition: border 0.2s;
+    }
+    input:focus { border-color: #5865f2; }
+
+    #join-btn {
+      width: 100%;
+      padding: 0.9rem;
+      background: #5865f2;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #join-btn:hover { background: #4752c4; }
+
+    #login-error {
+      margin-top: 0.8rem;
+      color: #f04747;
+      font-size: 0.9rem;
+      min-height: 1.2rem;
+    }
+
+    /* ── VOICE ROOM ── */
+    #voice-screen {
+      display: none;
+      width: 100%;
+      max-width: 420px;
+      padding: 1.5rem;
+    }
+
+    .room-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 1.5rem;
+    }
+    .room-title { font-size: 1.2rem; font-weight: 700; color: #fff; }
+    .room-sub { font-size: 0.8rem; color: #666; }
+
+    /* Wer ist im Raum */
+    #users-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.7rem;
+      margin-bottom: 2rem;
+    }
+
+    .user-card {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      background: #1e2130;
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+      border: 1px solid #2e3250;
+    }
+    .user-card.speaking { border-color: #43b581; box-shadow: 0 0 0 2px rgba(67,181,129,0.3); }
+    .user-card.muted { opacity: 0.6; }
+
+    .avatar {
+      width: 42px; height: 42px;
+      border-radius: 50%;
+      background: #5865f2;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; font-weight: 700; color: #fff;
+      flex-shrink: 0;
+    }
+
+    .user-info { flex: 1; }
+    .user-name { font-weight: 600; color: #fff; }
+    .user-status { font-size: 0.75rem; color: #666; margin-top: 2px; }
+
+    .mute-icon { font-size: 1.2rem; }
+
+    /* ── CONTROLS ── */
+    .controls {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .ctrl-btn {
+      width: 68px; height: 68px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: 1.6rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    #mute-btn {
+      background: #43b581;
+      color: #fff;
+    }
+    #mute-btn.muted {
+      background: #f04747;
+    }
+
+    #leave-btn {
+      background: #f04747;
+      color: #fff;
+    }
+    #leave-btn:hover { transform: scale(1.05); }
+
+    .ctrl-label {
+      font-size: 0.7rem;
+      text-align: center;
+      color: #666;
+      margin-top: 0.3rem;
+    }
+
+    .ctrl-wrap { display: flex; flex-direction: column; align-items: center; }
+
+    /* Status-Bar */
+    #status-bar {
+      text-align: center;
+      font-size: 0.8rem;
+      color: #43b581;
+      margin-bottom: 1.5rem;
+    }
+    #status-bar.error { color: #f04747; }
+
+    /* Sprachanzeige – simple Audio-Level-Indicator */
+    @keyframes pulse {
+      0%,100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .speaking-pulse { animation: pulse 0.8s infinite; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="logo">🎙️</div>
+  <h1>TalkChat</h1>
+  <p class="subtitle">Windrose Voice-Kanal</p>
+
+  <input type="text" id="name-input" placeholder="Dein Name" maxlength="20" autocomplete="off" />
+  <input type="password" id="pw-input" placeholder="Kennwort" autocomplete="off" />
+  <button id="join-btn">Beitreten</button>
+  <div id="login-error"></div>
+</div>
+
+<!-- VOICE ROOM -->
+<div id="voice-screen">
+  <div class="room-header">
+    <div>
+      <div class="room-title">🎮 Windrose Voice</div>
+      <div class="room-sub">Du bist verbunden</div>
+    </div>
+  </div>
+
+  <div id="status-bar">🟢 Verbunden</div>
+
+  <div id="users-list">
+    <!-- User-Cards werden dynamisch eingefügt -->
+  </div>
+
+  <div class="controls">
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn" id="mute-btn" title="Mikrofon">🎤</button>
+      <div class="ctrl-label" id="mute-label">Stumm</div>
+    </div>
+    <div class="ctrl-wrap">
+      <button class="ctrl-btn" id="leave-btn" title="Verlassen">📵</button>
+      <div class="ctrl-label">Verlassen</div>
+    </div>
+  </div>
+</div>
+
+<!-- Audio-Elemente für Remote-Streams -->
+<div id="audio-container" style="display:none;"></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+const socket = io();
+
+// ── State ──────────────────────────────────────
+let myId = null;
+let myName = '';
+let isMuted = false;
+let localStream = null;
+const peers = {}; // peerId → RTCPeerConnection
+
+const ICE_SERVERS = {
+  iceServers: [
+    { urls: 'stun:stun.l.google.com:19302' },
+    { urls: 'stun:stun1.l.google.com:19302' }
+  ]
+};
+
+// ── DOM ────────────────────────────────────────
+const loginScreen  = document.getElementById('login-screen');
+const voiceScreen  = document.getElementById('voice-screen');
+const nameInput    = document.getElementById('name-input');
+const pwInput      = document.getElementById('pw-input');
+const joinBtn      = document.getElementById('join-btn');
+const loginError   = document.getElementById('login-error');
+const usersList    = document.getElementById('users-list');
+const muteBtn      = document.getElementById('mute-btn');
+const muteLabel    = document.getElementById('mute-label');
+const leaveBtn     = document.getElementById('leave-btn');
+const statusBar    = document.getElementById('status-bar');
+const audioContainer = document.getElementById('audio-container');
+
+// ── Login ──────────────────────────────────────
+joinBtn.addEventListener('click', doJoin);
+[nameInput, pwInput].forEach(el => el.addEventListener('keydown', e => { if (e.key === 'Enter') doJoin(); }));
+nameInput.focus();
+
+function doJoin() {
+  const name = nameInput.value.trim();
+  const pw   = pwInput.value.trim();
+  if (!name) { loginError.textContent = 'Bitte gib deinen Namen ein.'; return; }
+  if (!pw)   { loginError.textContent = 'Bitte gib das Kennwort ein.'; return; }
+  loginError.textContent = '';
+  joinBtn.disabled = true;
+  joinBtn.textContent = 'Verbinde…';
+  myName = name;
+  socket.emit('join', { name, password: pw });
+}
+
+// ── Socket-Events ──────────────────────────────
+socket.on('error', msg => {
+  loginError.textContent = msg;
+  joinBtn.disabled = false;
+  joinBtn.textContent = 'Beitreten';
+});
+
+socket.on('joined', async ({ myId: id, users }) => {
+  myId = id;
+  showVoiceRoom();
+  addUserCard(myId, myName + ' (Du)', false);
+
+  // Mikrofon holen
+  try {
+    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch(e) {
+    setStatus('❌ Mikrofon-Zugriff verweigert!', true);
+    return;
+  }
+
+  // Mit jedem vorhandenen User verbinden (Caller)
+  for (const user of users) {
+    addUserCard(user.id, user.name, false);
+    await callPeer(user.id);
+  }
+});
+
+socket.on('user-joined', async ({ id, name }) => {
+  addUserCard(id, name, false);
+  // Der neue User wird als Callee die Verbindung entgegennehmen
+});
+
+socket.on('user-left', ({ id, name }) => {
+  removeUserCard(id);
+  closePeer(id);
+  setStatus(`${name} hat den Kanal verlassen`);
+  setTimeout(() => setStatus('🟢 Verbunden'), 3000);
+});
+
+socket.on('user-mute-changed', ({ id, name, muted }) => {
+  updateUserMute(id, muted);
+});
+
+// ── WebRTC Signaling ───────────────────────────
+socket.on('offer', async ({ from, offer }) => {
+  const pc = createPeer(from);
+  await pc.setRemoteDescription(new RTCSessionDescription(offer));
+  const answer = await pc.createAnswer();
+  await pc.setLocalDescription(answer);
+  socket.emit('answer', { to: from, answer });
+});
+
+socket.on('answer', async ({ from, answer }) => {
+  const pc = peers[from];
+  if (pc) await pc.setRemoteDescription(new RTCSessionDescription(answer));
+});
+
+socket.on('ice-candidate', async ({ from, candidate }) => {
+  const pc = peers[from];
+  if (pc && candidate) {
+    try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch(e) {}
+  }
+});
+
+// ── WebRTC Helpers ─────────────────────────────
+async function callPeer(peerId) {
+  const pc = createPeer(peerId);
+  const offer = await pc.createOffer();
+  await pc.setLocalDescription(offer);
+  socket.emit('offer', { to: peerId, offer });
+}
+
+function createPeer(peerId) {
+  if (peers[peerId]) peers[peerId].close();
+
+  const pc = new RTCPeerConnection(ICE_SERVERS);
+  peers[peerId] = pc;
+
+  // Lokalen Stream hinzufügen
+  if (localStream) {
+    localStream.getTracks().forEach(track => pc.addTrack(track, localStream));
+  }
+
+  // ICE-Kandidaten senden
+  pc.onicecandidate = ({ candidate }) => {
+    if (candidate) socket.emit('ice-candidate', { to: peerId, candidate });
+  };
+
+  // Remote Audio empfangen
+  pc.ontrack = ({ streams }) => {
+    let audio = document.getElementById(`audio-${peerId}`);
+    if (!audio) {
+      audio = document.createElement('audio');
+      audio.id = `audio-${peerId}`;
+      audio.autoplay = true;
+      audioContainer.appendChild(audio);
+    }
+    audio.srcObject = streams[0];
+  };
+
+  return pc;
+}
+
+function closePeer(peerId) {
+  if (peers[peerId]) {
+    peers[peerId].close();
+    delete peers[peerId];
+  }
+  const audio = document.getElementById(`audio-${peerId}`);
+  if (audio) audio.remove();
+}
+
+// ── Mute-Button ────────────────────────────────
+muteBtn.addEventListener('click', toggleMute);
+
+function toggleMute() {
+  isMuted = !isMuted;
+  if (localStream) {
+    localStream.getAudioTracks().forEach(t => t.enabled = !isMuted);
+  }
+  muteBtn.classList.toggle('muted', isMuted);
+  muteBtn.textContent = isMuted ? '🔇' : '🎤';
+  muteLabel.textContent = isMuted ? 'Laut' : 'Stumm';
+  updateUserMute(myId, isMuted);
+  socket.emit('mute-status', { muted: isMuted });
+}
+
+// ── Verlassen ──────────────────────────────────
+leaveBtn.addEventListener('click', () => {
+  Object.keys(peers).forEach(closePeer);
+  if (localStream) localStream.getTracks().forEach(t => t.stop());
+  socket.disconnect();
+  location.reload();
+});
+
+// ── UI-Helpers ─────────────────────────────────
+function showVoiceRoom() {
+  loginScreen.style.display = 'none';
+  voiceScreen.style.display = 'block';
+}
+
+function addUserCard(id, name, muted) {
+  if (document.getElementById(`user-${id}`)) return;
+  const initial = name.charAt(0).toUpperCase();
+  const card = document.createElement('div');
+  card.className = 'user-card';
+  card.id = `user-${id}`;
+  card.innerHTML = `
+    <div class="avatar">${initial}</div>
+    <div class="user-info">
+      <div class="user-name">${name}</div>
+      <div class="user-status" id="status-${id}">🎤 Aktiv</div>
+    </div>
+    <div class="mute-icon" id="mute-icon-${id}">${muted ? '🔇' : ''}</div>
+  `;
+  usersList.appendChild(card);
+}
+
+function removeUserCard(id) {
+  const el = document.getElementById(`user-${id}`);
+  if (el) el.remove();
+}
+
+function updateUserMute(id, muted) {
+  const card = document.getElementById(`user-${id}`);
+  if (!card) return;
+  card.classList.toggle('muted', muted);
+  const icon = document.getElementById(`mute-icon-${id}`);
+  const status = document.getElementById(`status-${id}`);
+  if (icon) icon.textContent = muted ? '🔇' : '';
+  if (status) status.textContent = muted ? '🔇 Stumm' : '🎤 Aktiv';
+}
+
+function setStatus(msg, isError = false) {
+  statusBar.textContent = msg;
+  statusBar.className = isError ? 'error' : '';
+}
+</script>
+</body>
+</html>
